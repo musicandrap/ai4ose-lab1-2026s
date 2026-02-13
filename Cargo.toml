@@ -1,6 +1,6 @@
 [package]
 name = "ai4ose-lab1-2026s"
-version = "0.1.10"
+version = "0.1.11"
 edition = "2024"
 authors = ["Yu Chen <yuchen@tsinghua.edu.cn>"]
 description = "AI4OSE Lab1: A minimal Rust application for OS kernel learning"
