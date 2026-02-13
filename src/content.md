@@ -76,9 +76,9 @@
 ## 附录：可使用的资源：
 - 最新教学实验教程（与AI合作的Rust组件化内核实验）
  - [教程国内网址](https://cnb.cool/LearningOS/tg-rcore-tutorial/-/tree/test)
-   - 如何开始：阅读[教程README](https://cnb.cool/LearningOS/tg-rcore-tutorial/-/blob/test/README.md) 并 阅读[豆包提供的基于 cnb.cool 的 Web IDE 实践 tg-rcore-tutorial 简易指导书](https://www.doubao.com/thread/w8e8e758a5785b585)
+   - 如何开始：阅读[教程README](https://cnb.cool/LearningOS/tg-rcore-tutorial/-/blob/test/README.md)，建议选择 `1.0 基于Web IDE方式的快速试用` 中的cnb Web IDE进行试用
  - [教程国外网址](https://github.com/LearningOS/tg-rcore-tutorial/tree/test)
-   - 如何开始：阅读[教程README](https://github.com/LearningOS/tg-rcore-tutorial/blob/test/README.md)并阅读[豆包提供的基于 github 的codespaces Web IDE 实践 tg-rcore-tutorial 简易指导书](https://www.doubao.com/thread/w08032b33b2fa72e9)
+   - 如何开始：阅读[教程README](https://github.com/LearningOS/tg-rcore-tutorial/blob/test/README.md)，建议选择 `1.0 基于Web IDE方式的快速试用` 中的gitub codespaces Web IDE进行试用
   
 可作为你与AI合作完成的适合自己学习的教学实验教程的一个参考仓库（也是对比对象）。
 
