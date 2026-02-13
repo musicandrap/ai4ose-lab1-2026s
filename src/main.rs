@@ -2,7 +2,7 @@
 ///
 /// 与AI合作进行操作系统内核学习的起点
 fn main() {
-    print!("{}", include_str!("content.txt"));
+    print!("{}", include_str!("content.md"));
 }
 
 #[cfg(test)]
