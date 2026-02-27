@@ -9,7 +9,7 @@ AI4OSE Lab1: 与AI合作进行操作系统内核学习的起点。
 
 ##  **快速浏览**
 
-直接阅读[AI4OSE实验一内容](https://github.com/LearningOS/ai4ose-lab1-2026s/blob/main/src/content.md)
+直接阅读[**AI4OSE实验一内容**](https://github.com/LearningOS/ai4ose-lab1-2026s/blob/main/src/content.md)
 
 
 ## **常规浏览**
@@ -99,4 +99,4 @@ cargo build
 cargo run
 ```
 
-程序将输出 AI4OSE 实验一的完整说明内容。
+程序将输出 **AI4OSE 实验一的完整说明内容**。
