@@ -46,7 +46,9 @@
 
 考核指标：
 
-考核指标1~3来自https://github.com/rcore-os/tg-rcore-tutorial-ch[1..8]/tree/test 中的`练习任务`中的内容。
+考核指标1~3的总体介绍来自[`tg-rcore-tutorial` crate](https://crates.io/crates/tg-rcore-tutorial)中的`练习任务`中的内容，仓库位于[`tg-rcore-tutorial` git仓库](https://github.com/rcore-os/tg-rcore-tutorial)。
+
+考核指标1~3的具体内容来自`tg-rcore-tutorial-ch[1..8]`crates 中的`练习任务`中的内容。可在https://crates.io/crates/tg-rcore-tutorial-ch-[1..8]的网址中看到，对应git 仓库位于 https://github.com/rcore-os/tg-rcore-tutorial-ch[1..8]/tree/test 。
 
 1. 基础实验实践（20%）  
    充分利用各类AI工具，完成附录“最新教学实验教程”中所列的5个基础实验练习（位于 ch3/4/5/6/8），夯实操作系统理论基础并提升实践能力，最终提交一份包含与AI合作的实现过程与学习收获的总结报告。  
