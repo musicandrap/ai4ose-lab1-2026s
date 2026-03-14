@@ -1,102 +1,210 @@
-# ai4ose-lab1-2026s
+# 3.14项目进度文档
 
-[![Crates.io](https://img.shields.io/crates/v/ai4ose-lab1-2026s.svg)](https://crates.io/crates/ai4ose-lab1-2026s)
-[![License: GPL-3.0](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
+## 阶段一1
 
-AI4OSE Lab1: 与AI合作进行操作系统内核学习的起点。
+完成了一阶段的ch1-8的基础练习，通过了**全部**的测试
 
-执行本项目后，会输出 AI4OSE 实验一说明内容。
+## 阶段二：T2L5————同步互斥机制（从“能跑”到“公平/可证明不饿死”）
 
-##  **快速浏览**
+**1.多个锁的初步设计**
 
-直接阅读[**AI4OSE实验一内容**](https://github.com/LearningOS/ai4ose-lab1-2026s/blob/main/src/content.md)
+​	**SpinLock实现：**
 
+	结构：
+	pub struct SpinLock {
+		locked: AtomicBool,
+		stats: LockStats,
+	}
+	上锁：
+	pub fn lock(&self) -> SpinLockGuard<'_> {
+	    let start_time = current_time_ms();
+	    let mut contended = false;
+	
+	    #[cfg(target_arch = "riscv64")]
+	    let enabled = unsafe { riscv::register::sstatus::read().sie() };
+	
+	    #[cfg(target_arch = "riscv64")]
+	    unsafe {
+	        riscv::register::sstatus::clear_sie()//禁止中断
+	    };
+	
+	    loop {
+	        if self
+	            .locked
+	            .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+	            .is_ok()
+	        {
+	            break;
+	        }
+	
+	        if !contended {
+	            contended = true;
+	            self.stats.record_contention();
+	        }
+	
+	        core::hint::spin_loop();//自旋
+	    }
+	
+	    if contended {
+	        let wait_time = current_time_ms() - start_time;
+	        self.stats.record_wait_time(wait_time);
+	    }
+	
+	    SpinLockGuard {
+	        lock: self,
+	        start_time: current_time_ms(),
+	        #[cfg(target_arch = "riscv64")]
+	        enabled,
+	    }
+	}
+​	**Mutex：实现**
 
-## **常规浏览**
+```
+结构：
+pub struct MutexInner {
+    pub locked: bool,
+    pub holder: Option<ProcId>,
+    pub wait_queue: VecDeque<ProcId>,
+}
+pub struct Mutex {
+    locked: AtomicBool,
+    inner: UnsafeCell<MutexInner>,
+    stats: LockStats,
+}
+上锁：
+pub fn lock(&self, pid: ProcId) -> (bool, Option<ProcId>) {
+        let start_time = current_time_ms();
 
-### 1. 安装 Rust 工具链
+        #[cfg(target_arch = "riscv64")]
+        let enabled = unsafe { riscv::register::sstatus::read().sie() };
 
-本项目使用 Rust 语言编写，需要安装 Rust 工具链（包含 `rustc` 编译器和 `cargo` 构建工具）。
+        #[cfg(target_arch = "riscv64")]
+        unsafe {
+            riscv::register::sstatus::clear_sie()
+        };
 
-**Linux / macOS / WSL：**
+        loop {
+            if self
+                .locked
+                .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+                .is_ok()
+            {
+                break;
+            }
+            core::hint::spin_loop();
+        }
 
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+        let inner = unsafe { &mut *self.inner.get() };
+
+        if inner.locked {
+            inner.wait_queue.push_back(pid);//交给调度器，"睡眠"
+            self.stats.record_contention();
+            let wait_time = current_time_ms() - start_time;
+            self.stats.record_wait_time(wait_time);
+
+            #[cfg(target_arch = "riscv64")]
+            if enabled {
+                unsafe {
+                    riscv::register::sstatus::set_sie()
+                };
+            }
+
+            (false, None)
+        } else {
+            inner.locked = true;
+            inner.holder = Some(pid);
+
+            #[cfg(target_arch = "riscv64")]
+            if enabled {
+                unsafe {
+                    riscv::register::sstatus::set_sie()
+                };
+            }
+
+            (true, None)
+        }
+    }
 ```
 
-安装完成后，按照提示将 Rust 加入环境变量（或重新打开终端）：
+​	**Semaphore**
 
-```bash
-source "$HOME/.cargo/env"
+```
+pub struct SemaphoreInner {
+    pub count: isize,                 // 可用资源数量
+    pub wait_queue: VecDeque<ProcId>, // 等待队列
+}
+
+pub struct Semaphore {
+    locked: AtomicBool,               // 自旋锁，用于保护内部数据
+    inner: UnsafeCell<SemaphoreInner>,
+}
+以down申请资源为例：
+fn down(pid: ProcId) -> bool {
+
+    acquire_spinlock()
+
+    inner.count -= 1 //申请一块资源
+
+    if inner.count < 0 {
+        inner.wait_queue.push_back(pid)
+
+        release_spinlock()
+
+        return false      // 当前进程需要睡眠
+    }
+
+    release_spinlock()
+
+    return true           // 获得资源
+}
 ```
 
-**Windows：**
+​	**Condvar： **
 
-从 [https://rustup.rs](https://rustup.rs) 下载并运行 `rustup-init.exe`，按照提示完成安装。
+```
+pub struct CondvarInner {
+    pub wait_queue: VecDeque<ProcId>,
+}
 
-验证安装
+pub struct Condvar {
+    locked: AtomicBool,
+    inner: UnsafeCell<CondvarInner>,
+}
+以wait等待为例：
+执行流程：
 
-```bash
-rustc --version    # 应显示 rustc 1.xx.x
-cargo --version    # 应显示 cargo 1.xx.x
+将当前线程加入等待队列
+
+释放 mutex
+
+当前线程睡眠
+
+被唤醒后重新获取 mutex
+fn wait(pid, mutex):
+
+    acquire_spinlock()
+
+    wait_queue.push_back(pid)
+
+    release_spinlock()
+
+    mutex.unlock() //这里不释放的话会导致这个资源永远取不到了，直接g
+
+    sleep(pid)
+
+    mutex.lock()
 ```
 
-### 2. 直接下载安装执行：显示实验内容
+​	**性能设计：**
 
-使用 `cargo install` 从 crates.io 下载、编译并安装到本地：
-
-```bash
-cargo install ai4ose-lab1-2026s
+```
+#[derive(Debug, Default)]
+pub struct LockStats {
+    pub contentions: AtomicUsize,
+    pub total_hold_time: AtomicUsize,
+    pub max_hold_time: AtomicUsize,
+    pub total_wait_time: AtomicUsize,
+    pub max_wait_time: AtomicUsize,
+}
 ```
 
-安装完成后，可执行文件会被放置在 `$HOME/.cargo/bin/` 目录下（该目录通常已在 PATH 中），之后可以在任意位置直接运行：
-
-```bash
-ai4ose-lab1-2026s
-```
-
-程序将输出 AI4OSE 实验一的完整说明内容。
-
-### 3. 源代码下载编译安装执行：显示实验内容
-
-**方式一：通过 Git 克隆仓库**
-
-```bash
-git clone https://github.com/learningos/ai4ose-lab1-2026s.git
-cd ai4ose-lab1-2026s
-```
-
-**方式二：通过 cargo clone 获取**
-
-使用 `cargo clone`（需先安装 `cargo-clone`）：
-
-```bash
-cargo install cargo-clone
-cargo clone ai4ose-lab1-2026s
-cd ai4ose-lab1-2026s
-```
-
-该命令会从 crates.io 下载指定 crate 的源代码，并解压到以 crate 名称命名的目录中，可直接进行编译和修改。
-
-**方式三：通过 cargo download 下载**
-
-使用 `cargo download`（需先安装 `cargo-download`）：
-
-```bash
-cargo install cargo-download
-cargo download ai4ose-lab1-2026s > ai4ose-lab1-2026s.tar.gz
-tar xzf ai4ose-lab1-2026s.tar.gz
-cd ai4ose-lab1-2026s-*/
-```
-
-也可以直接在浏览器中访问 [https://crates.io/crates/ai4ose-lab1-2026s](https://crates.io/crates/ai4ose-lab1-2026s) 页面，点击 "Download" 按钮下载源码包。
-
-
-#### 编译运行
-
-```bash
-cargo build
-cargo run
-```
-
-程序将输出 **AI4OSE 实验一的完整说明内容**。
